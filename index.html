@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ДЗ: Векторні простори</title>
+<style>
+  :root{
+    --blue:#2f5fd6;
+    --blue-dark:#1e3f99;
+    --green:#1f9d55;
+    --green-bg:#e6f7ec;
+    --red:#d64545;
+    --red-bg:#fdecec;
+    --gray:#8a93a6;
+    --bg:#f4f6fb;
+    --card:#ffffff;
+    --text:#232733;
+    --muted:#666f80;
+    --border:#e1e5ee;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.5;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:16px 16px 60px;}
+
+  header{
+    position:sticky;top:0;z-index:20;
+    background:linear-gradient(135deg,var(--blue),var(--blue-dark));
+    color:#fff;
+    padding:14px 16px;
+    box-shadow:0 2px 10px rgba(30,63,153,.25);
+  }
+  header .head-row{
+    max-width:820px;margin:0 auto;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  }
+  header h1{font-size:16px;margin:0;font-weight:700;}
+  header .sub{font-size:12px;opacity:.85;margin-top:2px;}
+  .timer{
+    background:rgba(255,255,255,.18);
+    border-radius:999px;
+    padding:6px 14px;
+    font-variant-numeric:tabular-nums;
+    font-weight:700;
+    font-size:15px;
+    display:flex;align-items:center;gap:6px;
+    white-space:nowrap;
+  }
+  .timer .dot{width:8px;height:8px;border-radius:50%;background:#5CFF9D;animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%{opacity:1}50%{opacity:.3}100%{opacity:1}}
+
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:22px;
+    margin-top:18px;
+    box-shadow:0 1px 3px rgba(20,30,60,.06), 0 8px 24px rgba(20,30,60,.04);
+    border:1px solid var(--border);
+  }
+
+  .start-title{font-size:22px;font-weight:800;margin:0 0 8px;color:var(--blue-dark);}
+  .start-desc{color:var(--muted);font-size:14.5px;margin-bottom:18px;}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    background:var(--blue);color:#fff;border:none;border-radius:10px;
+    padding:12px 22px;font-size:15px;font-weight:700;cursor:pointer;
+    transition:transform .06s ease, background .15s ease;
+  }
+  .btn:hover{background:var(--blue-dark);}
+  .btn:active{transform:scale(.98);}
+  .btn.secondary{background:#eef1f8;color:var(--blue-dark);}
+  .btn.secondary:hover{background:#e2e7f4;}
+  .btn.check{background:var(--green);}
+  .btn.check:hover{background:#188046;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+
+  .info-box{
+    background:#eef4ff;border:1px solid #d2e0fb;border-radius:10px;
+    padding:12px 14px;font-size:13.5px;color:#2a4272;margin-bottom:16px;
+  }
+
+  .task-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;margin-bottom:2px;}
+  .task-pill{
+    width:36px;height:36px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:13px;cursor:pointer;
+    background:#eef1f8;color:var(--blue-dark);border:2px solid transparent;
+    transition:all .12s ease;
+  }
+  .task-pill:hover{background:#e2e7f4;}
+  .task-pill.active{border-color:var(--blue);background:#dfe8ff;}
+  .task-pill.correct{background:var(--green-bg);color:var(--green);}
+  .task-pill.incorrect{background:var(--red-bg);color:var(--red);}
+
+  .task-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
+  .task-num-badge{
+    background:var(--blue);color:#fff;font-weight:800;font-size:13px;
+    padding:5px 12px;border-radius:999px;
+  }
+  .task-question{font-size:16.5px;font-weight:600;margin:10px 0 16px;color:var(--text);}
+
+  .diagram-box{
+    background:#fbfcfe;border:1.5px solid var(--border);border-radius:12px;
+    padding:10px;margin:10px 0 16px;display:flex;justify-content:center;
+  }
+  .diagram-box svg{max-width:100%;height:auto;}
+
+  .options{display:flex;flex-direction:column;gap:10px;margin-bottom:6px;}
+  .option{
+    display:flex;align-items:center;gap:12px;
+    padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);
+    background:#fbfcfe;cursor:pointer;transition:all .12s ease;
+  }
+  .option:hover{border-color:#c3cdea;}
+  .option .opt-letter{font-weight:800;color:var(--blue-dark);min-width:18px;}
+  .option .opt-text{font-size:15.5px;}
+  .option.selected{border-color:var(--blue);background:#eef2fd;}
+  .option.correct-mark{border-color:var(--green);background:var(--green-bg);}
+  .option.incorrect-mark{border-color:var(--red);background:var(--red-bg);}
+  .option.locked{cursor:default;pointer-events:none;}
+
+  .letter-row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px;}
+  .letter-btn{
+    width:44px;height:44px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:16px;cursor:pointer;
+    background:#eef1f8;color:var(--blue-dark);border:2px solid var(--border);
+    transition:all .12s ease;
+  }
+  .letter-btn:hover{border-color:#c3cdea;}
+  .letter-btn.selected{border-color:var(--blue);background:#eef2fd;}
+  .letter-btn.correct-mark{border-color:var(--green);background:var(--green-bg);color:var(--green);}
+  .letter-btn.incorrect-mark{border-color:var(--red);background:var(--red-bg);color:var(--red);}
+  .letter-btn.locked{cursor:default;pointer-events:none;}
+
+  .match-row{margin-bottom:14px;}
+  .sel-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px;margin-bottom:8px;border:1.5px solid var(--line,#d9deea);border-radius:10px;background:#fff;}
+  .sel-q{flex:1 1 280px;font-size:15px;}
+  .sel-num{min-width:110px;max-width:140px;}
+  .sel-lab{font-weight:700;margin-left:6px;}
+  .sel-input{font-size:15px;padding:7px 10px;border-radius:8px;border:1.5px solid #b9c2dc;background:#fff;min-width:130px;}
+  .sel-row.sel-ok{border-color:#2e9e5b;background:#eaf8ef;}
+  .sel-row.sel-bad{border-color:#d64545;background:#fdeeee;}
+  .sel-right{font-weight:700;color:#d64545;font-size:14px;}
+  .match-row .row-label{font-weight:700;font-size:14.5px;color:var(--text);margin-bottom:6px;}
+
+  .ref-table{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px;}
+  .ref-table th{
+    text-align:center;padding:8px;background:#eef1f8;color:var(--blue-dark);
+    font-weight:800;border:1px solid var(--border);
+  }
+  .ref-table td{text-align:left;padding:8px;border:1px solid var(--border);}
+
+  .feedback{margin-top:16px;padding:14px 16px;border-radius:12px;font-size:14.5px;display:none;}
+  .feedback.show{display:block;}
+  .feedback.ok{background:var(--green-bg);border:1.5px solid #b7e5c8;color:#1c6b3c;}
+  .feedback.bad{background:var(--red-bg);border:1.5px solid #f3c3c3;color:#9c2f2f;}
+  .feedback .fb-title{font-weight:800;font-size:15px;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
+
+  .solution-box{
+    margin-top:12px;background:#fff8e8;border:1px solid #f2e2b8;border-radius:10px;
+    padding:14px 16px;font-size:14px;color:#5c4a12;display:none;
+  }
+  .solution-box.show{display:block;}
+  .solution-box .sol-title{font-weight:800;color:#7a5a12;margin-bottom:8px;font-size:14.5px;}
+  .solution-box .sol-step{margin:4px 0;}
+
+  .nav-buttons{display:flex;justify-content:space-between;margin-top:20px;gap:10px;flex-wrap:wrap;}
+
+  .score-hero{text-align:center;padding:26px 16px 10px;}
+  .score-circle{
+    width:150px;height:150px;border-radius:50%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    margin:0 auto 18px;
+    background:conic-gradient(var(--blue) calc(var(--pct,0)*1%), #eef1f8 0);
+    position:relative;
+  }
+  .score-circle::before{
+    content:'';position:absolute;inset:10px;border-radius:50%;background:#fff;
+  }
+  .score-circle .pct{position:relative;font-size:30px;font-weight:800;color:var(--blue-dark);}
+  .score-circle .lbl{position:relative;font-size:12px;color:var(--muted);}
+  .score-theme{font-size:14px;font-weight:700;color:var(--blue-dark);margin-top:-6px;}
+  .score-stats{display:flex;justify-content:center;gap:22px;margin:14px 0 6px;flex-wrap:wrap;}
+  .score-stats .stat{text-align:center;}
+  .score-stats .stat .n{font-size:19px;font-weight:800;color:var(--blue-dark);}
+  .score-stats .stat .l{font-size:12px;color:var(--muted);}
+  .screenshot-note{
+    text-align:center;color:var(--muted);font-size:13.5px;margin-top:18px;
+    padding-top:16px;border-top:1px dashed var(--border);
+  }
+
+  .results-table-title{font-weight:800;font-size:15.5px;color:var(--blue-dark);margin:6px 0 10px;}
+  .results-table{width:100%;border-collapse:collapse;font-size:14px;}
+  .results-table th{
+    text-align:left;padding:9px 10px;background:#eef1f8;color:var(--blue-dark);
+    font-size:12.5px;font-weight:700;border-bottom:1.5px solid var(--border);
+  }
+  .results-table td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  .results-table tr:last-child td{border-bottom:none;}
+  .results-table .status-ok{color:var(--green);font-weight:800;}
+  .results-table .status-bad{color:var(--red);font-weight:800;}
+  .results-table tr.row-ok{background:var(--green-bg);}
+  .results-table tr.row-bad{background:var(--red-bg);}
+
+  .stu-form{display:grid;gap:10px;margin:16px 0 6px;}
+  .stu-form label{display:grid;gap:4px;font-size:14px;font-weight:600;}
+  .stu-form .sel-input{width:100%;box-sizing:border-box;font-weight:400;}
+  .stu-hint{font-size:13px;color:#667;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .send-status{margin-top:14px;padding:10px 14px;border-radius:10px;font-size:14px;background:#eef2ff;}
+  .send-status.ok{background:#e7f6ec;} .send-status.bad{background:#fdecea;}
+  .hidden{display:none !important;}
+
+  .frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 3px;line-height:1.1;}
+  .frac-num{border-bottom:1.5px solid currentColor;padding:0 4px 1px;}
+  .frac-den{padding:1px 4px 0;}
+</style>
+</head>
+<body>
+<header>
+  <div class="head-row">
+    <div>
+      <h1>Векторні простори</h1>
+      <div class="sub">Самоперевірка</div>
+    </div>
+    <div class="timer" id="timer"><span class="dot"></span><span id="timer-text">00:00</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="card" id="start-screen">
+    <div class="start-title">Самоперевірка: Векторні простори</div>
+    <div class="start-desc">Тест із розділу II підручника О. Никифорчина «Лінійна алгебра та елементи геометрії»: лекція 1 (поняття векторного простору, підпростори) і лекція 2 (лінійні оболонки, системи векторів, бази та координати).</div>
+    <div class="info-box">Обери один варіант відповіді (або встанови відповідність) та натисни кнопку «Перевірити». Якщо відповідь неправильна — під завданням з'явиться детальний розв'язок. Можна переходити між завданнями у будь-якому порядку через нумеровану панель.</div>
+    <div class="stu-form">
+      <label>Електронна пошта<input class="sel-input" id="stu-email" type="email" autocomplete="email" placeholder="name@gmail.com"></label>
+      <label>Прізвище та ім'я<input class="sel-input" id="stu-name" type="text" autocomplete="name" placeholder="Іваненко Петро"></label>
+      <label>Група<input class="sel-input" id="stu-group" type="text" autocomplete="off" placeholder="наприклад, ММк-21"></label>
+      <div class="stu-hint">Заповни всі три поля: результат автоматично надійде викладачу після завершення тесту.</div>
+    </div>
+    <button class="btn" id="start-btn" disabled>Почати тест</button>
+  </div>
+
+  <div class="card hidden" id="quiz-screen">
+    <div class="task-nav" id="task-nav"></div>
+    <div style="margin-top:18px;" id="task-container"></div>
+    <div class="nav-buttons">
+      <button class="btn secondary" id="prev-btn">← Назад</button>
+      <button class="btn" id="next-btn">Далі →</button>
+      <button class="btn hidden" id="finish-btn">Завершити тест</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="result-screen">
+    <div class="score-hero">
+      <div class="score-circle" id="score-circle">
+        <div class="pct" id="score-pct">0%</div>
+        <div class="lbl">результат</div>
+      </div>
+      <div class="score-theme">Векторні простори</div>
+      <div class="score-stats">
+        <div class="stat"><div class="n" id="stat-correct">0</div><div class="l">правильно</div></div>
+        <div class="stat"><div class="n" id="stat-total">0</div><div class="l">балів</div></div>
+        <div class="stat"><div class="n" id="stat-time">0:00</div><div class="l">час</div></div>
+      </div>
+    </div>
+    <div class="results-table-title">Результати за завданнями</div>
+    <table class="results-table" id="results-table">
+      <thead>
+        <tr><th>Завдання</th><th>Тип</th><th>Бал</th><th>Статус</th></tr>
+      </thead>
+      <tbody id="results-table-body"></tbody>
+    </table>
+    <div class="send-status" id="send-status">Надсилаю результат…</div>
+    <div style="margin-top:10px"><button class="btn hidden" id="retry-btn">Надіслати ще раз</button></div>
+    <div class="screenshot-note">На всяк випадок зроби скриншот цього результату.</div>
+  </div>
+
+</div>
+
+<script>
+/* ============ HELPERS ============ */
+function fr(num, den){
+  return '<span class="frac"><span class="frac-num">'+num+'</span><span class="frac-den">'+den+'</span></span>';
+}
+
+/* ============ TASKS ============ */
+const TASKS = [
+ {
+  "type": "choice",
+  "question": "Скільки аксіом входить в означення векторного простору над полем K (I<sub>1</sub>–I<sub>4</sub> та II<sub>1</sub>–II<sub>4</sub>)?",
+  "options": {
+   "А": "4",
+   "Б": "6",
+   "В": "8",
+   "Г": "10",
+   "Д": "12"
+  },
+  "correct": "В",
+  "solution": [
+   "Чотири аксіоми стосуються додавання: асоціативність, комутативність, нульовий вектор, протилежний вектор (I<sub>1</sub>–I<sub>4</sub>).",
+   "Чотири аксіоми стосуються множення на скаляр: асоціативність, дві дистрибутивності та 1·x = x (II<sub>1</sub>–II<sub>4</sub>).",
+   "Разом 4 + 4 = 8.",
+   "Відповідь: В."
+  ],
+  "id": 1,
+  "label": "Завдання 1"
+ },
+ {
+  "type": "choice",
+  "question": "Рівність α·(β·x) = (αβ)·x для довільних α, β ∈ K і x ∈ L називається:",
+  "options": {
+   "А": "дистрибутивністю множення щодо скаляра",
+   "Б": "асоціативністю множення",
+   "В": "дистрибутивністю множення щодо вектора",
+   "Г": "комутативністю додавання",
+   "Д": "існуванням нейтрального елемента"
+  },
+  "correct": "Б",
+  "solution": [
+   "Рівність переносить дужки в добутку скалярів, тому це асоціативність множення (аксіома II<sub>1</sub>).",
+   "Дистрибутивність мала б вигляд (α + β)·x = αx + βx або α·(x + y) = αx + αy.",
+   "Відповідь: Б."
+  ],
+  "id": 2,
+  "label": "Завдання 2"
+ },
+ {
+  "type": "choice",
+  "question": "Нехай x — довільний вектор векторного простору над K. Чому дорівнює 0·x (скаляр 0 ∈ K)?",
+  "options": {
+   "А": "нульовому вектору",
+   "Б": "скаляру 0",
+   "В": "вектору x",
+   "Г": "вектору −x",
+   "Д": "вектору 1·x"
+  },
+  "correct": "А",
+  "solution": [
+   "x = 1·x = (0 + 1)·x = 0·x + 1·x = 0·x + x.",
+   "Додаємо до обох частин −x і отримуємо <b>0</b> = 0·x.",
+   "Результат — вектор, а не число: нульовий вектор.",
+   "Відповідь: А."
+  ],
+  "id": 3,
+  "label": "Завдання 3"
+ },
+ {
+  "type": "choice",
+  "question": "Яке з наведених тверджень <b>хибне</b>?",
+  "options": {
+   "А": "перетин будь-якої сім'ї підпросторів простору L є підпростором",
+   "Б": "кожне поле K є векторним простором над самим собою",
+   "В": "об'єднання двох підпросторів простору L завжди є підпростором",
+   "Г": "{<b>0</b>} є підпростором кожного векторного простору",
+   "Д": "кожен підпростір містить нульовий вектор"
+  },
+  "correct": "В",
+  "solution": [
+   "Перетин підпросторів — підпростір (твердження 2.1); {<b>0</b>} і весь простір — підпростори; кожен підпростір містить <b>0</b> (наслідок 1.3).",
+   "Контрприклад для об'єднання: осі Ox і Oy на площині. Вектори (1, 0) і (0, 1) належать об'єднанню, а їхня сума (1, 1) — ні.",
+   "Відповідь: В."
+  ],
+  "id": 4,
+  "label": "Завдання 4"
+ },
+ {
+  "type": "choice",
+  "question": "Яка з підмножин простору ℝ<sup>3</sup> є векторним підпростором?",
+  "options": {
+   "А": "{(x<sub>1</sub>, x<sub>2</sub>, x<sub>3</sub>) | x<sub>1</sub> − 2x<sub>2</sub> + 5x<sub>3</sub> = 1}",
+   "Б": "{(x<sub>1</sub>, x<sub>2</sub>, x<sub>3</sub>) | x<sub>1</sub> ≥ 0}",
+   "В": "{(x<sub>1</sub>, x<sub>2</sub>, x<sub>3</sub>) | |x<sub>1</sub>| = |x<sub>2</sub>|}",
+   "Г": "{(x<sub>1</sub>, x<sub>2</sub>, x<sub>3</sub>) | x<sub>1</sub> − 2x<sub>2</sub> + 5x<sub>3</sub> = 0}",
+   "Д": "{(x<sub>1</sub>, x<sub>2</sub>, x<sub>3</sub>) | x<sub>1</sub>x<sub>2</sub> = 0}"
+  },
+  "correct": "Г",
+  "solution": [
+   "Підпростір має містити <b>0</b> та бути замкненим щодо додавання і множення на число.",
+   "А: (0, 0, 0) не задовольняє рівність = 1. Б: множення на −1 виводить за межі. В: (1, 1, 0) + (1, −1, 0) = (2, 0, 0), а |2| ≠ 0. Д: (1, 0, 0) + (0, 1, 0) = (1, 1, 0), а 1·1 ≠ 0.",
+   "Г: однорідне лінійне рівняння задає підпростір (замкнене щодо суми та множення на число).",
+   "Відповідь: Г."
+  ],
+  "id": 5,
+  "label": "Завдання 5"
+ },
+ {
+  "type": "choice",
+  "question": "Яка з підмножин простору ℝ<sup>ℝ</sup> усіх функцій f: ℝ → ℝ є підпростором?",
+  "options": {
+   "А": "{f | f(2) = 1}",
+   "Б": "{f | f(x) ≥ 0 для всіх x}",
+   "В": "{f | f(2)·f(0) = 0}",
+   "Г": "{f | f строго зростає}",
+   "Д": "{f | f(2) = 0}"
+  },
+  "correct": "Д",
+  "solution": [
+   "А: нульова функція не належить множині. Б: (−1)·f має від'ємні значення. Г: нульова функція не є строго зростаючою, а (−1)·f спадає, тож множина не замкнена щодо множення на число.",
+   "В: f(x) = x − 2 і g(x) = x задовольняють умову, а їхня сума при x = 2 дає 2, при x = 0 дає −2, добуток −4 ≠ 0.",
+   "Д: якщо f(2) = g(2) = 0, то (f + g)(2) = 0 і (αf)(2) = 0.",
+   "Відповідь: Д."
+  ],
+  "id": 6,
+  "label": "Завдання 6"
+ },
+ {
+  "type": "match",
+  "question": "Установіть відповідність між підмножиною простору ℝ<sup>3</sup> (1–3) та її властивістю (А–Д).",
+  "refLabel1": "Підмножина",
+  "refLabel2": "Властивість",
+  "letters": [
+   "А",
+   "Б",
+   "В",
+   "Г",
+   "Д"
+  ],
+  "refOptions": {
+   "А": "є підпростором",
+   "Б": "не є підпростором, бо не містить нульового вектора",
+   "В": "не є підпростором, бо не замкнена щодо додавання",
+   "Г": "не є підпростором, бо не замкнена щодо множення на число",
+   "Д": "не є підпростором, бо не замкнена ні щодо додавання, ні щодо множення"
+  },
+  "rows": [
+   {
+    "n": 1,
+    "text": "{x | x<sub>1</sub> = 0 або x<sub>2</sub> = 0}",
+    "correct": "В"
+   },
+   {
+    "n": 2,
+    "text": "{x | x<sub>1</sub> + x<sub>2</sub> + x<sub>3</sub> = 3}",
+    "correct": "Б"
+   },
+   {
+    "n": 3,
+    "text": "{x | x<sub>1</sub> = 2x<sub>2</sub> = 3x<sub>3</sub>}",
+    "correct": "А"
+   }
+  ],
+  "solution": [
+   "1: (1, 0, 0) і (0, 1, 0) належать множині, а їхня сума (1, 1, 0) — ні. Відповідь В.",
+   "2: <b>0</b> = (0, 0, 0) не задовольняє рівність (0 ≠ 3). Відповідь Б.",
+   "3: це множина розв'язків однорідної системи, тому вона замкнена щодо обох операцій і містить <b>0</b>. Відповідь А.",
+   "Відповідь: 1-В, 2-Б, 3-А."
+  ],
+  "id": 7,
+  "label": "Завдання 7"
+ },
+ {
+  "type": "select",
+  "question": "На множині M = ℝ × (0, +∞) задано операції: (a<sub>1</sub>, a<sub>2</sub>) + (b<sub>1</sub>, b<sub>2</sub>) = (a<sub>1</sub> + b<sub>1</sub>, a<sub>2</sub>b<sub>2</sub>) і α·(a<sub>1</sub>, a<sub>2</sub>) = (αa<sub>1</sub>, a<sub>2</sub><sup>α</sup>). Знайдіть:",
+  "rows": [
+   {
+    "text": "1. Нульовий вектор має вигляд (0, c). Чому дорівнює c?",
+    "answer": 1
+   },
+   {
+    "text": "2. Друга координата суми (2, 3) + (1, 4).",
+    "answer": 12
+   },
+   {
+    "text": "3. Друга координата вектора 2·(1, 3).",
+    "answer": 9
+   },
+   {
+    "text": "4. Протилежний до (2, 5) вектор має вигляд (−2, d). Чому дорівнює d?",
+    "answer": 0.2
+   }
+  ],
+  "solution": [
+   "Нульовий вектор: (a<sub>1</sub>, a<sub>2</sub>) + (0, c) = (a<sub>1</sub>, a<sub>2</sub>c) має збігатися з (a<sub>1</sub>, a<sub>2</sub>), тому c = 1.",
+   "(2, 3) + (1, 4) = (3, 3·4) = (3, 12).",
+   "2·(1, 3) = (2, 3<sup>2</sup>) = (2, 9).",
+   "(2, 5) + (−2, d) = (0, 5d) = (0, 1), звідки d = "+fr("1","5")+" = 0,2.",
+   "Відповідь: 1; 12; 9; 0,2."
+  ],
+  "id": 8,
+  "label": "Завдання 8"
+ },
+ {
+  "type": "choice",
+  "question": "Лінійна оболонка span A множини A у векторному просторі L — це:",
+  "options": {
+   "А": "найменший підпростір простору L, що містить A",
+   "Б": "найбільший підпростір, що міститься в A",
+   "В": "сама множина A",
+   "Г": "об'єднання всіх підпросторів простору L",
+   "Д": "множина всіх векторів, перпендикулярних до A"
+  },
+  "correct": "А",
+  "solution": [
+   "За означенням 2.3 лінійна оболонка — найменший (щодо включення) підпростір, що містить A.",
+   "Згідно з твердженням 2.6 вона збігається з множиною всіх лінійних комбінацій елементів A.",
+   "Відповідь: А."
+  ],
+  "id": 9,
+  "label": "Завдання 9"
+ },
+ {
+  "type": "choice",
+  "question": "Яку найбільшу кількість лінійно незалежних векторів можна вибрати в лінійній оболонці трьох векторів b<sub>1</sub>, b<sub>2</sub>, b<sub>3</sub>?",
+  "options": {
+   "А": "2",
+   "Б": "3",
+   "В": "4",
+   "Г": "6",
+   "Д": "необмежену кількість"
+  },
+  "correct": "Б",
+  "solution": [
+   "За теоремою Штейніца, якщо система з k векторів міститься в лінійній оболонці n векторів і k > n, то вона лінійно залежна.",
+   "Отже, k ≤ 3, і трьох векторів досягти можна, коли b<sub>1</sub>, b<sub>2</sub>, b<sub>3</sub> самі незалежні.",
+   "Відповідь: Б."
+  ],
+  "id": 10,
+  "label": "Завдання 10"
+ },
+ {
+  "type": "choice",
+  "question": "Чому дорівнює вимірність простору ℝ<sub>4</sub>[x] многочленів зі змінною x степеня ≤ 4 з дійсними коефіцієнтами?",
+  "options": {
+   "А": "4",
+   "Б": "6",
+   "В": "3",
+   "Г": "5",
+   "Д": "10"
+  },
+  "correct": "Г",
+  "solution": [
+   "Многочлени 1, x, x<sup>2</sup>, x<sup>3</sup>, x<sup>4</sup> лінійно незалежні й породжують увесь простір, тобто утворюють базу.",
+   "Отже, dim ℝ<sub>4</sub>[x] = 5 (на 1 більше за найвищий степінь).",
+   "Відповідь: Г."
+  ],
+  "id": 11,
+  "label": "Завдання 11"
+ },
+ {
+  "type": "choice",
+  "question": "Чому дорівнює вимірність підпростору L<sub>0</sub> = {(x<sub>1</sub>, x<sub>2</sub>, x<sub>3</sub>) ∈ ℝ<sup>3</sup> | x<sub>1</sub> + x<sub>2</sub> + x<sub>3</sub> = 0}?",
+  "options": {
+   "А": "3",
+   "Б": "1",
+   "В": "2",
+   "Г": "0",
+   "Д": "4"
+  },
+  "correct": "В",
+  "solution": [
+   "Підставимо x<sub>1</sub> = −x<sub>2</sub> − x<sub>3</sub>: вектор має вигляд x<sub>2</sub>(−1, 1, 0) + x<sub>3</sub>(−1, 0, 1).",
+   "Вектори (−1, 1, 0) і (−1, 0, 1) непропорційні, отже, лінійно незалежні й утворюють базу L<sub>0</sub>.",
+   "Відповідь: В."
+  ],
+  "id": 12,
+  "label": "Завдання 12"
+ },
+ {
+  "type": "choice",
+  "question": "Яка з систем векторів є базою простору ℝ<sup>3</sup>?",
+  "options": {
+   "А": "(1, 2, 3), (2, 4, 6), (0, 1, 0)",
+   "Б": "(1, 0, 1), (0, 1, 1), (1, 1, 2)",
+   "В": "(1, 2, 3), (4, 5, 6), (7, 8, 9)",
+   "Г": "(1, 0, 0), (0, 1, 0)",
+   "Д": "(1, 1, 0), (0, 1, 1), (1, 0, 1)"
+  },
+  "correct": "Д",
+  "solution": [
+   "База ℝ<sup>3</sup> — це лінійно незалежна система з трьох векторів.",
+   "А: (2, 4, 6) = 2·(1, 2, 3). Б: третій вектор — сума перших двох. В: (7, 8, 9) = 2·(4, 5, 6) − (1, 2, 3). Г: лише два вектори, вони не породжують ℝ<sup>3</sup>.",
+   "Д: визначник 1·(1·1 − 1·0) − 1·(0·1 − 1·1) + 0 = 2 ≠ 0, тому вектори лінійно незалежні.",
+   "Відповідь: Д."
+  ],
+  "id": 13,
+  "label": "Завдання 13"
+ },
+ {
+  "type": "select",
+  "question": "Вектори a<sub>1</sub>(1, 0, 2), a<sub>2</sub>(0, 1, −1) і a<sub>3</sub>(2, 3, 1) утворюють лінійно залежну систему: a<sub>3</sub> = α·a<sub>1</sub> + β·a<sub>2</sub>. Знайдіть:",
+  "rows": [
+   {
+    "text": "1. Коефіцієнт α.",
+    "answer": 2
+   },
+   {
+    "text": "2. Коефіцієнт β.",
+    "answer": 3
+   }
+  ],
+  "solution": [
+   "Перша координата: α = 2. Друга координата: β = 3.",
+   "Перевірка третьої координати: 2·2 + 3·(−1) = 1. Збігається.",
+   "Відповідь: α = 2, β = 3."
+  ],
+  "id": 14,
+  "label": "Завдання 14"
+ },
+ {
+  "type": "select",
+  "question": "Знайдіть значення параметра, при якому два вектори лінійно залежні.",
+  "rows": [
+   {
+    "text": "1. Вектори (1, −2, 3) і (−2, 4, t). Знайдіть t.",
+    "answer": -6
+   }
+  ],
+  "solution": [
+   "Два вектори лінійно залежні тоді й лише тоді, коли вони пропорційні.",
+   "(−2, 4, t) = −2·(1, −2, 3) = (−2, 4, −6), тому t = −6.",
+   "Відповідь: −6."
+  ],
+  "id": 15,
+  "label": "Завдання 15"
+ },
+ {
+  "type": "select",
+  "question": "Подайте вектор x(3, −8) ∈ ℝ<sup>2</sup> як лінійну комбінацію векторів p(2, −3) і q(1, 2): x = α·p + β·q. Знайдіть:",
+  "rows": [
+   {
+    "text": "1. Коефіцієнт α.",
+    "answer": 2
+   },
+   {
+    "text": "2. Коефіцієнт β.",
+    "answer": -1
+   }
+  ],
+  "solution": [
+   "Складаємо систему: 2α + β = 3 і −3α + 2β = −8.",
+   "З першого рівняння β = 3 − 2α. Підставляємо: −3α + 6 − 4α = −8, звідки α = 2, β = −1.",
+   "Перевірка: 2·(2, −3) − (1, 2) = (3, −8).",
+   "Відповідь: α = 2, β = −1."
+  ],
+  "id": 16,
+  "label": "Завдання 16"
+ },
+ {
+  "type": "select",
+  "question": "Система векторів a<sub>1</sub>(1, 0, −1), a<sub>2</sub>(3, 0, −3), a<sub>3</sub>(0, 1, 2), a<sub>4</sub>(2, −1, −4) у ℝ<sup>3</sup>. Знайдіть:",
+  "rows": [
+   {
+    "text": "1. Ранг системи (кількість векторів у її базі).",
+    "answer": 2
+   },
+   {
+    "text": "2. Коефіцієнт α у рівності a<sub>4</sub> = α·a<sub>1</sub> + β·a<sub>3</sub>.",
+    "answer": 2
+   },
+   {
+    "text": "3. Коефіцієнт β у цій самій рівності.",
+    "answer": -1
+   }
+  ],
+  "solution": [
+   "a<sub>2</sub> = 3a<sub>1</sub>, тому a<sub>2</sub> можна вилучити без зміни оболонки.",
+   "Друга координата a<sub>4</sub> дорівнює −1, тому β = −1; перша координата дає α = 2.",
+   "Перевірка: 2·(1, 0, −1) − (0, 1, 2) = (2, −1, −4) = a<sub>4</sub>. Отже, a<sub>4</sub> теж зайвий.",
+   "Залишилися a<sub>1</sub>, a<sub>3</sub>: вони непропорційні, тому незалежні й утворюють базу. Ранг дорівнює 2.",
+   "Відповідь: 2; 2; −1."
+  ],
+  "id": 17,
+  "label": "Завдання 17"
+ },
+ {
+  "type": "match",
+  "question": "Установіть відповідність між системою векторів (1–3) та її властивістю (А–Д).",
+  "refLabel1": "Система",
+  "refLabel2": "Властивість",
+  "letters": [
+   "А",
+   "Б",
+   "В",
+   "Г",
+   "Д"
+  ],
+  "refOptions": {
+   "А": "лінійно залежна, не є системою твірних ℝ<sup>3</sup>",
+   "Б": "лінійно залежна, є системою твірних ℝ<sup>3</sup>",
+   "В": "лінійно незалежна, не є системою твірних ℝ<sup>3</sup>",
+   "Г": "лінійно незалежна, є системою твірних ℝ<sup>3</sup> (база)",
+   "Д": "лінійно залежна, бо містить нульовий вектор"
+  },
+  "rows": [
+   {
+    "n": 1,
+    "text": "(1, 2, 3), (2, 4, 6)",
+    "correct": "А"
+   },
+   {
+    "n": 2,
+    "text": "(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 1)",
+    "correct": "Б"
+   },
+   {
+    "n": 3,
+    "text": "(1, 1, 0), (0, 1, 1)",
+    "correct": "В"
+   }
+  ],
+  "solution": [
+   "1: другий вектор вдвічі більший за перший, ранг 1. Система залежна й породжує лише пряму. Відповідь А.",
+   "2: перші три вектори — стандартна база ℝ<sup>3</sup>, четвертий — їхня сума. Система залежна, але породжує ℝ<sup>3</sup>. Відповідь Б.",
+   "3: вектори непропорційні, тому незалежні, але двох векторів замало для ℝ<sup>3</sup> (dim = 3). Відповідь В.",
+   "Відповідь: 1-А, 2-Б, 3-В."
+  ],
+  "id": 18,
+  "label": "Завдання 18"
+ },
+ {
+  "type": "select",
+  "question": "Вектори e<sub>1</sub>(1, 2) і e<sub>2</sub>(2, 1) утворюють базу ℝ<sup>2</sup>. Знайдіть координати вектора x(7, 8) у цій базі: x = x<sub>1</sub>e<sub>1</sub> + x<sub>2</sub>e<sub>2</sub>.",
+  "rows": [
+   {
+    "text": "1. Координата x<sub>1</sub>.",
+    "answer": 3
+   },
+   {
+    "text": "2. Координата x<sub>2</sub>.",
+    "answer": 2
+   }
+  ],
+  "solution": [
+   "Складаємо систему: x<sub>1</sub> + 2x<sub>2</sub> = 7 і 2x<sub>1</sub> + x<sub>2</sub> = 8.",
+   "Від подвоєного першого рівняння віднімаємо друге: 3x<sub>2</sub> = 6, x<sub>2</sub> = 2, тоді x<sub>1</sub> = 3.",
+   "Перевірка: 3·(1, 2) + 2·(2, 1) = (7, 8).",
+   "Відповідь: x(3, 2)."
+  ],
+  "id": 19,
+  "label": "Завдання 19"
+ },
+ {
+  "type": "select",
+  "question": "Многочлени 1, x − 1, (x − 1)<sup>2</sup> утворюють базу простору ℝ<sub>2</sub>[x]. Знайдіть координати многочлена P(x) = 2x<sup>2</sup> − x + 3 у цій базі: P = c<sub>0</sub>·1 + c<sub>1</sub>(x − 1) + c<sub>2</sub>(x − 1)<sup>2</sup>.",
+  "rows": [
+   {
+    "text": "1. Координата c<sub>0</sub>.",
+    "answer": 4
+   },
+   {
+    "text": "2. Координата c<sub>1</sub>.",
+    "answer": 3
+   },
+   {
+    "text": "3. Координата c<sub>2</sub>.",
+    "answer": 2
+   }
+  ],
+  "solution": [
+   "Старший коефіцієнт: c<sub>2</sub> = 2. Тоді P − 2(x − 1)<sup>2</sup> = 2x<sup>2</sup> − x + 3 − 2x<sup>2</sup> + 4x − 2 = 3x + 1.",
+   "3x + 1 = 3(x − 1) + 4, тому c<sub>1</sub> = 3, c<sub>0</sub> = 4.",
+   "Відповідь: P(4, 3, 2)."
+  ],
+  "id": 20,
+  "label": "Завдання 20"
+ },
+ {
+  "type": "select",
+  "question": "У трикутнику ABC точка K — середина сторони [AB]. Подайте вектор <span style=\"text-decoration:overline\">CK</span> як лінійну комбінацію векторів <span style=\"text-decoration:overline\">AB</span> і <span style=\"text-decoration:overline\">AC</span>: <span style=\"text-decoration:overline\">CK</span> = x·<span style=\"text-decoration:overline\">AB</span> + y·<span style=\"text-decoration:overline\">AC</span>. Знайдіть:",
+  "rows": [
+   {
+    "text": "1. Коефіцієнт x.",
+    "answer": 0.5
+   },
+   {
+    "text": "2. Коефіцієнт y.",
+    "answer": -1
+   }
+  ],
+  "solution": [
+   "За правилом трикутника <span style=\"text-decoration:overline\">CK</span> = <span style=\"text-decoration:overline\">CA</span> + <span style=\"text-decoration:overline\">AK</span>.",
+   "<span style=\"text-decoration:overline\">CA</span> = −<span style=\"text-decoration:overline\">AC</span>, <span style=\"text-decoration:overline\">AK</span> = "+fr("1","2")+"·<span style=\"text-decoration:overline\">AB</span>, тому <span style=\"text-decoration:overline\">CK</span> = "+fr("1","2")+"·<span style=\"text-decoration:overline\">AB</span> − <span style=\"text-decoration:overline\">AC</span>.",
+   "Вектори <span style=\"text-decoration:overline\">AB</span> і <span style=\"text-decoration:overline\">AC</span> непаралельні, тому розклад єдиний.",
+   "Відповідь: x = 0,5; y = −1."
+  ],
+  "id": 21,
+  "label": "Завдання 21"
+ },
+ {
+  "type": "select",
+  "question": "Вектори b<sub>1</sub>(1, 0, 1, 2), b<sub>2</sub>(0, 1, 1, 1), b<sub>3</sub>(1, 1, 2, 3), b<sub>4</sub>(1, 2, 1, 0) у просторі ℝ<sup>4</sup>.",
+  "rows": [
+   {
+    "text": "1. Знайдіть ранг системи (b<sub>1</sub>, b<sub>2</sub>, b<sub>3</sub>, b<sub>4</sub>).",
+    "answer": 3
+   },
+   {
+    "text": "2. Чи утворює ця система базу ℝ<sup>4</sup>?",
+    "choices": [
+     "так",
+     "ні"
+    ],
+    "correct": "ні"
+   }
+  ],
+  "solution": [
+   "b<sub>3</sub> = b<sub>1</sub> + b<sub>2</sub>, тому b<sub>3</sub> можна вилучити без зміни оболонки.",
+   "Вектори b<sub>1</sub>, b<sub>2</sub>, b<sub>4</sub> лінійно незалежні (жоден не є комбінацією попередніх), тож ранг дорівнює 3.",
+   "База ℝ<sup>4</sup> має містити 4 лінійно незалежні вектори, а ранг системи лише 3, тому вона не є базою.",
+   "Відповідь: 3; ні."
+  ],
+  "id": 22,
+  "label": "Завдання 22"
+ }
+];
+
+/* ============ STATE ============ */
+let state = {
+  started:false,
+  current:0,
+  answers:{},
+  startTime:null,
+  timerInterval:null
+};
+function getTaskState(t){
+  if(!state.answers[t.id]){
+    if(t.type === "choice"){
+      state.answers[t.id] = { selected:null, checked:false, correct:false };
+    } else {
+      state.answers[t.id] = {
+        selected: new Array(t.rows.length).fill(null),
+        checked:false,
+        results: new Array(t.rows.length).fill(null),
+        score:0
+      };
+    }
+  }
+  return state.answers[t.id];
+}
+function taskMax(t){ return (t.type === "match" || t.type === "select") ? t.rows.length : 1; }
+const TOTAL_MAX = TASKS.reduce((s,t)=>s+taskMax(t),0);
+
+/* ============ TIMER ============ */
+function formatTime(ms){
+  const totalSec = Math.floor(ms/1000);
+  const m = Math.floor(totalSec/60);
+  const s = totalSec%60;
+  return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function startTimer(){
+  state.startTime = Date.now();
+  state.timerInterval = setInterval(()=>{
+    document.getElementById('timer-text').textContent = formatTime(Date.now()-state.startTime);
+  }, 1000);
+}
+function stopTimer(){
+  if(state.timerInterval) clearInterval(state.timerInterval);
+}
+
+/* ============ ANSWER CHECK ============ */
+function isTaskAnswered(t){
+  return getTaskState(t).checked;
+}
+function taskScore(t){
+  const st = getTaskState(t);
+  if(!st.checked) return 0;
+  if(t.type === "choice") return st.correct ? 1 : 0;
+  return st.score;
+}
+function isTaskFullyCorrect(t){
+  return isTaskAnswered(t) && taskScore(t) === taskMax(t);
+}
+function numEq(str, ans){
+  const v = parseFloat(String(str).replace(/[−–—]/g,'-').replace(',','.'));
+  return !isNaN(v) && Math.abs(v-ans) < 1e-9;
+}
+function rowOk(row, val){
+  if(val === null || val === undefined) return false;
+  return (row.choices || row.pair || row.correct !== undefined) ? (val === row.correct) : numEq(val, row.answer);
+}
+function checkTask(t){
+  const st = getTaskState(t);
+  if(t.type === "choice"){
+    if(!st.selected) return;
+    st.checked = true;
+    st.correct = (st.selected === t.correct);
+  } else {
+    let correctCount = 0;
+    t.rows.forEach((row, idx)=>{
+      const ok = rowOk(row, st.selected[idx]);
+      st.results[idx] = ok;
+      if(ok) correctCount++;
+    });
+    st.checked = true;
+    st.score = correctCount;
+  }
+  renderTask();
+  renderNav();
+}
+
+/* ============ NAV PILLS ============ */
+function renderNav(){
+  const nav = document.getElementById('task-nav');
+  nav.innerHTML = '';
+  TASKS.forEach((t, idx)=>{
+    const pill = document.createElement('div');
+    pill.className = 'task-pill';
+    pill.textContent = t.id;
+    if(idx === state.current) pill.classList.add('active');
+    if(isTaskAnswered(t)){
+      pill.classList.add(isTaskFullyCorrect(t) ? 'correct' : 'incorrect');
+    }
+    pill.addEventListener('click', ()=>{ state.current = idx; renderTask(); renderNav(); });
+    nav.appendChild(pill);
+  });
+}
+
+/* ============ RENDER TASK ============ */
+function renderTask(){
+  const t = TASKS[state.current];
+  const st = getTaskState(t);
+  const container = document.getElementById('task-container');
+
+  let html = '';
+  html += '<div class="task-header">';
+  html += '<span class="task-num-badge">'+t.label+' ('+(state.current+1)+' / '+TASKS.length+')</span>';
+  html += '</div>';
+  html += '<div class="task-question">'+t.question+'</div>';
+
+  if(t.image){
+    html += '<div class="diagram-box">'+t.image+'</div>';
+  }
+
+  let readyToCheck = false;
+
+  if(t.type === "choice"){
+    html += '<div class="options" id="options">';
+    Object.keys(t.options).forEach(letter=>{
+      let cls = 'option';
+      if(st.selected === letter && !st.checked) cls += ' selected';
+      if(st.checked){
+        cls += ' locked';
+        if(letter === t.correct) cls += ' correct-mark';
+        else if(letter === st.selected) cls += ' incorrect-mark';
+      }
+      html += '<label class="'+cls+'" data-letter="'+letter+'">';
+      html += '<span class="opt-letter">'+letter+'</span>';
+      html += '<span class="opt-text">'+t.options[letter]+'</span>';
+      html += '</label>';
+    });
+    html += '</div>';
+    readyToCheck = !!st.selected;
+  } else if(t.type === "select"){
+    t.rows.forEach((row, idx)=>{
+      let cls = 'sel-row';
+      if(st.checked) cls += st.results[idx] ? ' sel-ok' : ' sel-bad';
+      html += '<div class="'+cls+'"><div class="sel-q">'+(idx+1)+'. '+row.text+'</div>';
+      if(row.pair){
+        const cur=(st.partial&&st.partial[idx])||(st.selected[idx]||'|').split('|');
+        [['x<sub>1</sub>',0],['x<sub>2</sub>',1]].forEach(p=>{
+          html += '<span class="sel-lab">'+p[0]+' =</span><select class="sel-input" data-row="'+idx+'" data-part="'+p[1]+'"'+(st.checked?' disabled':'')+'><option value="">— оберіть —</option>';
+          row.choices.forEach(c=>{ html += '<option value="'+c+'"'+(cur[p[1]]===c?' selected':'')+'>'+c+'</option>'; });
+          html += '</select>';
+        });
+      } else if(row.choices){
+        html += '<select class="sel-input" data-row="'+idx+'"'+(st.checked?' disabled':'')+'><option value="">— оберіть —</option>';
+        row.choices.forEach(c=>{ html += '<option value="'+c+'"'+(st.selected[idx]===c?' selected':'')+'>'+c+'</option>'; });
+        html += '</select>';
+      } else {
+        html += '<input class="sel-input sel-num" type="text" inputmode="decimal" autocomplete="off" placeholder="число" data-row="'+idx+'"'+(st.checked?' disabled':'')+' value="'+(st.selected[idx]||'')+'">';
+      }
+      if(st.checked && !st.results[idx]) html += '<span class="sel-right">Правильно: '+(row.pair ? 'x<sub>1</sub> = '+row.correct.split('|')[0]+', x<sub>2</sub> = '+row.correct.split('|')[1] : (row.choices ? row.correct : String(row.answer).replace('.',',')))+'</span>';
+      html += '</div>';
+    });
+    readyToCheck = st.selected.every(v => v !== null);
+  } else {
+    html += '<table class="ref-table"><tr><th>'+t.refLabel1+'</th><th>'+t.refLabel2+'</th></tr>';
+    const n = Math.max(t.rows.length, t.letters.length);
+    for(let i=0;i<n;i++){
+      html += '<tr>';
+      html += '<td>'+(t.rows[i] ? (t.rows[i].n+') '+t.rows[i].text) : '')+'</td>';
+      const letter = t.letters[i];
+      html += '<td>'+(letter ? (letter+') '+t.refOptions[letter]) : '')+'</td>';
+      html += '</tr>';
+    }
+    html += '</table>';
+    t.rows.forEach((row, idx)=>{
+      html += '<div class="match-row">';
+      html += '<div class="row-label">'+row.n+') '+row.text+'</div>';
+      html += '<div class="letter-row" data-row="'+idx+'">';
+      t.letters.forEach(letter=>{
+        let cls = 'letter-btn';
+        if(st.selected[idx] === letter && !st.checked) cls += ' selected';
+        if(st.checked){
+          cls += ' locked';
+          if(letter === row.correct) cls += ' correct-mark';
+          else if(letter === st.selected[idx]) cls += ' incorrect-mark';
+        }
+        html += '<div class="'+cls+'" data-letter="'+letter+'">'+letter+'</div>';
+      });
+      html += '</div></div>';
+    });
+    readyToCheck = st.selected.every(v => v !== null);
+  }
+
+  if(!st.checked){
+    html += '<div class="btn-row"><button class="btn check" id="check-btn" '+(!readyToCheck?'disabled':'')+'>Перевірити</button></div>';
+  }
+
+  const fullyCorrect = st.checked && (taskScore(t) === taskMax(t));
+  html += '<div class="feedback '+(st.checked ? (fullyCorrect?'show ok':'show bad') : '')+'">';
+  if(st.checked){
+    if(t.type === "match" || t.type === "select"){
+      html += '<div class="fb-title">'+(fullyCorrect ? '✓ Усе правильно!' : '✗ Правильно '+taskScore(t)+' із '+taskMax(t))+'</div>';
+    } else {
+      html += '<div class="fb-title">'+(fullyCorrect ? '✓ Правильно!' : '✗ Неправильно')+'</div>';
+    }
+  }
+  html += '</div>';
+
+  if(st.checked && !fullyCorrect){
+    html += '<div class="solution-box show"><div class="sol-title">Розв\'язок:</div>';
+    t.solution.forEach(step=>{ html += '<div class="sol-step">'+step+'</div>'; });
+    html += '</div>';
+  }
+
+  container.innerHTML = html;
+
+  if(!st.checked){
+    if(t.type === "choice"){
+      container.querySelectorAll('#options .option').forEach(opt=>{
+        opt.addEventListener('click', ()=>{
+          st.selected = opt.getAttribute('data-letter');
+          renderTask();
+        });
+      });
+    } else if(t.type === "select"){
+      container.querySelectorAll('.sel-input').forEach(sel=>{
+        const idx = parseInt(sel.getAttribute('data-row'),10);
+        const upd = ()=>{
+          if(sel.hasAttribute('data-part')){ const vals=[...sel.parentNode.querySelectorAll('select[data-row="'+idx+'"]')].map(x=>x.value.trim()); (st.partial=st.partial||{})[idx]=vals; st.selected[idx]=vals.every(Boolean)?vals.join('|'):null; } else { st.selected[idx] = sel.value.trim() || null; }
+          const cb = document.getElementById('check-btn');
+          if(cb) cb.disabled = !st.selected.every(v => v !== null);
+        };
+        sel.addEventListener(sel.tagName === 'SELECT' ? 'change' : 'input', upd);
+      });
+    } else {
+      container.querySelectorAll('.letter-row[data-row]').forEach(rowEl=>{
+        const idx = parseInt(rowEl.getAttribute('data-row'), 10);
+        rowEl.querySelectorAll('.letter-btn').forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            st.selected[idx] = btn.getAttribute('data-letter');
+            renderTask();
+          });
+        });
+      });
+    }
+    const checkBtn = document.getElementById('check-btn');
+    if(checkBtn){
+      checkBtn.addEventListener('click', ()=>{ checkTask(t); });
+    }
+  }
+
+  document.getElementById('prev-btn').disabled = state.current === 0;
+  const isLast = state.current === TASKS.length - 1;
+  document.getElementById('next-btn').classList.toggle('hidden', isLast);
+  document.getElementById('finish-btn').classList.toggle('hidden', !isLast);
+}
+
+/* ============ RESULTS ============ */
+function computeScore(){
+  let correct = 0;
+  TASKS.forEach(t=>{ correct += taskScore(t); });
+  return correct;
+}
+function showResults(){
+  stopTimer();
+  TASKS.forEach(t=>{ const st=getTaskState(t); if(st.checked) return;
+    if(t.type==="choice"){ if(st.selected){ st.checked=true; st.correct=(st.selected===t.correct); } }
+    else if(st.selected.some(Boolean)){ let c=0; t.rows.forEach((row,i)=>{ const ok=rowOk(row, st.selected[i]); st.results[i]=ok; if(ok)c++; }); st.checked=true; st.score=c; } });
+  const correct = computeScore();
+  const pct = Math.round((correct/TOTAL_MAX)*100);
+  document.getElementById('quiz-screen').classList.add('hidden');
+  document.getElementById('result-screen').classList.remove('hidden');
+  document.getElementById('score-circle').style.setProperty('--pct', pct);
+  document.getElementById('score-pct').textContent = pct+'%';
+  document.getElementById('stat-correct').textContent = correct;
+  document.getElementById('stat-total').textContent = TOTAL_MAX;
+  document.getElementById('stat-time').textContent = formatTime(Date.now()-state.startTime);
+
+  const typeLabel = {choice:"з вибором відповіді", match:"на відповідність", select:"по діях / відповідь"};
+
+  const tbody = document.getElementById('results-table-body');
+  tbody.innerHTML = '';
+  TASKS.forEach(t=>{
+    const score = taskScore(t);
+    const max = taskMax(t);
+    const checkedAtAll = isTaskAnswered(t);
+    const ok = checkedAtAll && score === max;
+    const tr = document.createElement('tr');
+    tr.className = checkedAtAll ? (ok ? 'row-ok' : 'row-bad') : 'row-bad';
+    tr.innerHTML =
+      '<td>'+t.label+'</td>'+
+      '<td>'+typeLabel[t.type]+'</td>'+
+      '<td>'+score+' / '+max+'</td>'+
+      '<td class="'+(ok?'status-ok':'status-bad')+'">'+(checkedAtAll ? (ok?'✓ правильно':'✗ помилка') : '— не перевірено')+'</td>';
+    tbody.appendChild(tr);
+  });
+  sendResults();
+}
+
+
+/* ============ ВІДПРАВКА РЕЗУЛЬТАТУ У GOOGLE FORMS ============ */
+const FORM_URL='https://docs.google.com/forms/d/e/1FAIpQLSeEDXFUuGmZ-rORfBhpOcmQ4YpbPgwSzgBiCxVHLZXCrem-RQ/formResponse';
+const FIELDS={email:'emailAddress',name:'entry.1283019973',group:'entry.621793441',score:'entry.255368005',details:'entry.1194474293'};
+let student={email:'',name:'',group:''};
+let sending=false, sentOk=false, savedPayload=null;
+function fmtAns(v){ return (v===null||v===undefined||v==='')?'—':String(v); }
+function buildDetails(){
+  const lines=[];
+  TASKS.forEach((t,ti)=>{
+    const n=ti+1; const st=getTaskState(t);
+    if(t.type==='choice'){
+      const a=st.selected; const ok=(a===t.correct);
+      lines.push(n+': '+fmtAns(a)+(ok?' ✓':' ✗ (правильно '+t.correct+')'));
+    } else {
+      const parts=t.rows.map((row,i)=>{
+        const v=st.selected[i]; const ok=rowOk(row,v);
+        const right=(row.choices||row.pair||row.correct!==undefined)?row.correct:row.answer;
+        const tag=(t.type==='match')?(row.n+'-'):((i+1)+')');
+        return tag+fmtAns(v)+(ok?' ✓':' ✗ (правильно '+right+')');
+      });
+      lines.push(n+': '+parts.join('; '));
+    }
+  });
+  lines.push('Час: '+formatTime(Date.now()-state.startTime));
+  return lines.join('\n');
+}
+function setSendStatus(cls,text){
+  const el=document.getElementById('send-status');
+  el.className='send-status'+(cls?' '+cls:''); el.textContent=text;
+}
+function sendResults(){
+  if(sending||sentOk) return;
+  if(!savedPayload){
+    savedPayload=new URLSearchParams();
+    savedPayload.append(FIELDS.email,student.email);
+    savedPayload.append(FIELDS.name,student.name);
+    savedPayload.append(FIELDS.group,student.group);
+    savedPayload.append(FIELDS.score,String(computeScore()));
+    savedPayload.append(FIELDS.details,buildDetails());
+  }
+  sending=true;
+  document.getElementById('retry-btn').classList.add('hidden');
+  setSendStatus('','Надсилаю результат…');
+  fetch(FORM_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:savedPayload.toString()})
+    .then(()=>{ sending=false; sentOk=true; setSendStatus('ok','Результат відправлено викладачу. Дякуємо!'); })
+    .catch(()=>{ sending=false; setSendStatus('bad','Не вдалося надіслати (перевір інтернет). Натисни «Надіслати ще раз» або зроби скриншот і надішли викладачу.'); document.getElementById('retry-btn').classList.remove('hidden'); });
+}
+function validStudent(){
+  const e=document.getElementById('stu-email').value.trim();
+  const n=document.getElementById('stu-name').value.trim();
+  const g=document.getElementById('stu-group').value.trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) && n.length>=3 && g.length>=2;
+}
+['stu-email','stu-name','stu-group'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>{ document.getElementById('start-btn').disabled=!validStudent(); });
+});
+document.getElementById('retry-btn').addEventListener('click',sendResults);
+
+/* ============ EVENTS ============ */
+document.getElementById('start-btn').addEventListener('click', ()=>{
+  if(!validStudent()) return;
+  student={email:document.getElementById('stu-email').value.trim(),name:document.getElementById('stu-name').value.trim(),group:document.getElementById('stu-group').value.trim()};
+  state.started = true;
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('quiz-screen').classList.remove('hidden');
+  startTimer();
+  renderNav();
+  renderTask();
+});
+document.getElementById('prev-btn').addEventListener('click', ()=>{
+  if(state.current > 0){ state.current--; renderTask(); renderNav(); }
+});
+document.getElementById('next-btn').addEventListener('click', ()=>{
+  if(state.current < TASKS.length - 1){ state.current++; renderTask(); renderNav(); }
+});
+document.getElementById('finish-btn').addEventListener('click', showResults);
+</script>
+</body>
+</html>
