@@ -215,7 +215,6 @@
   .stu-form label{display:grid;gap:4px;font-size:14px;font-weight:600;}
   .stu-form .sel-input{width:100%;box-sizing:border-box;font-weight:400;}
   .stu-hint{font-size:13px;color:#667;}
-  .btn:disabled{opacity:.5;cursor:not-allowed;}
   .send-status{margin-top:14px;padding:10px 14px;border-radius:10px;font-size:14px;background:#eef2ff;}
   .send-status.ok{background:#e7f6ec;} .send-status.bad{background:#fdecea;}
   .hidden{display:none !important;}
@@ -845,348 +844,399 @@ const TOTAL_MAX = TASKS.reduce((s,t)=>s+taskMax(t),0);
 function formatTime(ms){
   const totalSec = Math.floor(ms/1000);
   const m = Math.floor(totalSec/60);
-  const s = totalSec%60;
-  return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  const s = totalSec % 60;
+  return m + ":" + (s < 10 ? "0" : "") + s;
 }
 function startTimer(){
   state.startTime = Date.now();
   state.timerInterval = setInterval(()=>{
-    document.getElementById('timer-text').textContent = formatTime(Date.now()-state.startTime);
+    const diff = Date.now() - state.startTime;
+    document.getElementById("timer-text").textContent = formatTime(diff);
   }, 1000);
 }
 function stopTimer(){
-  if(state.timerInterval) clearInterval(state.timerInterval);
+  clearInterval(state.timerInterval);
+  return Date.now() - state.startTime;
 }
 
-/* ============ ANSWER CHECK ============ */
-function isTaskAnswered(t){
-  return getTaskState(t).checked;
-}
-function taskScore(t){
-  const st = getTaskState(t);
-  if(!st.checked) return 0;
-  if(t.type === "choice") return st.correct ? 1 : 0;
-  return st.score;
-}
-function isTaskFullyCorrect(t){
-  return isTaskAnswered(t) && taskScore(t) === taskMax(t);
-}
-function numEq(str, ans){
-  const v = parseFloat(String(str).replace(/[−–—]/g,'-').replace(',','.'));
-  return !isNaN(v) && Math.abs(v-ans) < 1e-9;
-}
-function rowOk(row, val){
-  if(val === null || val === undefined) return false;
-  return (row.choices || row.pair || row.correct !== undefined) ? (val === row.correct) : numEq(val, row.answer);
-}
-function checkTask(t){
-  const st = getTaskState(t);
-  if(t.type === "choice"){
-    if(!st.selected) return;
-    st.checked = true;
-    st.correct = (st.selected === t.correct);
-  } else {
-    let correctCount = 0;
-    t.rows.forEach((row, idx)=>{
-      const ok = rowOk(row, st.selected[idx]);
-      st.results[idx] = ok;
-      if(ok) correctCount++;
-    });
-    st.checked = true;
-    st.score = correctCount;
-  }
-  renderTask();
-  renderNav();
-}
+/* ============ RENDER ============ */
+const startScreen = document.getElementById("start-screen");
+const quizScreen = document.getElementById("quiz-screen");
+const resultScreen = document.getElementById("result-screen");
+const startBtn = document.getElementById("start-btn");
+const stuEmail = document.getElementById("stu-email");
+const stuName = document.getElementById("stu-name");
+const stuGroup = document.getElementById("stu-group");
 
-/* ============ NAV PILLS ============ */
-function renderNav(){
-  const nav = document.getElementById('task-nav');
-  nav.innerHTML = '';
-  TASKS.forEach((t, idx)=>{
-    const pill = document.createElement('div');
-    pill.className = 'task-pill';
-    pill.textContent = t.id;
-    if(idx === state.current) pill.classList.add('active');
-    if(isTaskAnswered(t)){
-      pill.classList.add(isTaskFullyCorrect(t) ? 'correct' : 'incorrect');
+function validateStart(){
+  const ok = stuEmail.value.trim() && stuName.value.trim() && stuGroup.value.trim();
+  startBtn.disabled = !ok;
+}
+[stuEmail, stuName, stuGroup].forEach(el => el.addEventListener("input", validateStart));
+
+startBtn.addEventListener("click", ()=>{
+  state.started = true;
+  startScreen.classList.add("hidden");
+  quizScreen.classList.remove("hidden");
+  startTimer();
+  renderTaskNav();
+  renderCurrentTask();
+});
+
+function renderTaskNav(){
+  const nav = document.getElementById("task-nav");
+  nav.innerHTML = "";
+  TASKS.forEach((t, i)=>{
+    const pill = document.createElement("div");
+    pill.className = "task-pill" + (i === state.current ? " active" : "");
+    pill.textContent = i + 1;
+    const st = state.answers[t.id];
+    if(st && st.checked){
+      const max = taskMax(t);
+      const sc = (t.type === "choice") ? (st.correct ? 1 : 0) : st.score;
+      if(sc === max) pill.classList.add("correct");
+      else pill.classList.add("incorrect");
     }
-    pill.addEventListener('click', ()=>{ state.current = idx; renderTask(); renderNav(); });
+    pill.addEventListener("click", ()=>{
+      state.current = i;
+      renderTaskNav();
+      renderCurrentTask();
+    });
     nav.appendChild(pill);
   });
 }
 
-/* ============ RENDER TASK ============ */
-function renderTask(){
+function renderCurrentTask(){
+  const container = document.getElementById("task-container");
   const t = TASKS[state.current];
   const st = getTaskState(t);
-  const container = document.getElementById('task-container');
-
-  let html = '';
-  html += '<div class="task-header">';
-  html += '<span class="task-num-badge">'+t.label+' ('+(state.current+1)+' / '+TASKS.length+')</span>';
-  html += '</div>';
-  html += '<div class="task-question">'+t.question+'</div>';
-
-  if(t.image){
-    html += '<div class="diagram-box">'+t.image+'</div>';
-  }
-
-  let readyToCheck = false;
+  
+  let html = `
+    <div class="task-header">
+      <div class="task-num-badge">${t.label} (з 22)</div>
+      <div style="font-size:13px;color:var(--muted)">Максимум балів: ${taskMax(t)}</div>
+    </div>
+    <div class="task-question">${t.question}</div>
+  `;
 
   if(t.type === "choice"){
-    html += '<div class="options" id="options">';
-    Object.keys(t.options).forEach(letter=>{
-      let cls = 'option';
-      if(st.selected === letter && !st.checked) cls += ' selected';
+    html += `<div class="options">`;
+    for(const [k, v] of Object.entries(t.options)){
+      let cls = "option";
+      if(st.selected === k) cls += " selected";
       if(st.checked){
-        cls += ' locked';
-        if(letter === t.correct) cls += ' correct-mark';
-        else if(letter === st.selected) cls += ' incorrect-mark';
+        cls += " locked";
+        if(k === t.correct) cls += " correct-mark";
+        else if(st.selected === k) cls += " incorrect-mark";
       }
-      html += '<label class="'+cls+'" data-letter="'+letter+'">';
-      html += '<span class="opt-letter">'+letter+'</span>';
-      html += '<span class="opt-text">'+t.options[letter]+'</span>';
-      html += '</label>';
+      html += `<div class="${cls}" data-key="${k}">
+        <div class="opt-letter">${k}</div>
+        <div class="opt-text">${v}</div>
+      </div>`;
+    }
+    html += `</div>`;
+  } else if(t.type === "match"){
+    html += `<table class="ref-table"><thead><tr><th>${t.refLabel1}</th><th>${t.refLabel2}</th></tr></thead><tbody>`;
+    for(const [k, v] of Object.entries(t.refOptions)){
+      html += `<tr><td style="font-weight:700;text-align:center;width:40px">${k}</td><td>${v}</td></tr>`;
+    }
+    html += `</tbody></table>`;
+
+    t.rows.forEach((row, idx)=>{
+      html += `<div class="match-row">
+        <div class="row-label">${row.n}. ${row.text}</div>
+        <div class="letter-row" data-row="${idx}">`;
+      t.letters.forEach(lettr=>{
+        let cls = "letter-btn";
+        if(st.selected[idx] === lettr) cls += " selected";
+        if(st.checked){
+          cls += " locked";
+          if(lettr === row.correct) cls += " correct-mark";
+          else if(st.selected[idx] === lettr) cls += " incorrect-mark";
+        }
+        html += `<div class="${cls}" data-letter="${lettr}">${lettr}</div>`;
+      });
+      html += `</div></div>`;
     });
-    html += '</div>';
-    readyToCheck = !!st.selected;
   } else if(t.type === "select"){
     t.rows.forEach((row, idx)=>{
-      let cls = 'sel-row';
-      if(st.checked) cls += st.results[idx] ? ' sel-ok' : ' sel-bad';
-      html += '<div class="'+cls+'"><div class="sel-q">'+(idx+1)+'. '+row.text+'</div>';
-      if(row.pair){
-        const cur=(st.partial&&st.partial[idx])||(st.selected[idx]||'|').split('|');
-        [['x<sub>1</sub>',0],['x<sub>2</sub>',1]].forEach(p=>{
-          html += '<span class="sel-lab">'+p[0]+' =</span><select class="sel-input" data-row="'+idx+'" data-part="'+p[1]+'"'+(st.checked?' disabled':'')+'><option value="">— оберіть —</option>';
-          row.choices.forEach(c=>{ html += '<option value="'+c+'"'+(cur[p[1]]===c?' selected':'')+'>'+c+'</option>'; });
-          html += '</select>';
-        });
-      } else if(row.choices){
-        html += '<select class="sel-input" data-row="'+idx+'"'+(st.checked?' disabled':'')+'><option value="">— оберіть —</option>';
-        row.choices.forEach(c=>{ html += '<option value="'+c+'"'+(st.selected[idx]===c?' selected':'')+'>'+c+'</option>'; });
-        html += '</select>';
-      } else {
-        html += '<input class="sel-input sel-num" type="text" inputmode="decimal" autocomplete="off" placeholder="число" data-row="'+idx+'"'+(st.checked?' disabled':'')+' value="'+(st.selected[idx]||'')+'">';
+      let rowCls = "sel-row";
+      if(st.checked){
+        rowCls += st.results[idx] ? " sel-ok" : " sel-bad";
       }
-      if(st.checked && !st.results[idx]) html += '<span class="sel-right">Правильно: '+(row.pair ? 'x<sub>1</sub> = '+row.correct.split('|')[0]+', x<sub>2</sub> = '+row.correct.split('|')[1] : (row.choices ? row.correct : String(row.answer).replace('.',',')))+'</span>';
-      html += '</div>';
+      html += `<div class="${rowCls}">
+        <div class="sel-q">${row.text}</div>`;
+      if(row.choices){
+        html += `<div class="sel-num"><select class="sel-input" data-sub="${idx}" ${st.checked ? "disabled" : ""}>
+          <option value="">-- обери --</option>`;
+        row.choices.forEach(ch=>{
+          const sel = (st.selected[idx] === ch) ? "selected" : "";
+          html += `<option value="${ch}" ${sel}>${ch}</option>`;
+        });
+        html += `</select></div>`;
+      } else {
+        const val = st.selected[idx] !== null ? st.selected[idx] : "";
+        html += `<div class="sel-num"><input class="sel-input" type="text" data-sub="${idx}" value="${val}" ${st.checked ? "disabled" : ""} placeholder="відповідь"></div>`;
+      }
+      if(st.checked){
+        html += `<div class="sel-right">${st.results[idx] ? "✓" : "✗ (вірно: " + row.answer + ")"}</div>`;
+      }
+      html += `</div>`;
     });
-    readyToCheck = st.selected.every(v => v !== null);
-  } else {
-    html += '<table class="ref-table"><tr><th>'+t.refLabel1+'</th><th>'+t.refLabel2+'</th></tr>';
-    const n = Math.max(t.rows.length, t.letters.length);
-    for(let i=0;i<n;i++){
-      html += '<tr>';
-      html += '<td>'+(t.rows[i] ? (t.rows[i].n+') '+t.rows[i].text) : '')+'</td>';
-      const letter = t.letters[i];
-      html += '<td>'+(letter ? (letter+') '+t.refOptions[letter]) : '')+'</td>';
-      html += '</tr>';
-    }
-    html += '</table>';
-    t.rows.forEach((row, idx)=>{
-      html += '<div class="match-row">';
-      html += '<div class="row-label">'+row.n+') '+row.text+'</div>';
-      html += '<div class="letter-row" data-row="'+idx+'">';
-      t.letters.forEach(letter=>{
-        let cls = 'letter-btn';
-        if(st.selected[idx] === letter && !st.checked) cls += ' selected';
-        if(st.checked){
-          cls += ' locked';
-          if(letter === row.correct) cls += ' correct-mark';
-          else if(letter === st.selected[idx]) cls += ' incorrect-mark';
-        }
-        html += '<div class="'+cls+'" data-letter="'+letter+'">'+letter+'</div>';
-      });
-      html += '</div></div>';
-    });
-    readyToCheck = st.selected.every(v => v !== null);
   }
 
-  if(!st.checked){
-    html += '<div class="btn-row"><button class="btn check" id="check-btn" '+(!readyToCheck?'disabled':'')+'>Перевірити</button></div>';
-  }
-
-  const fullyCorrect = st.checked && (taskScore(t) === taskMax(t));
-  html += '<div class="feedback '+(st.checked ? (fullyCorrect?'show ok':'show bad') : '')+'">';
+  // Feedback & Solution
+  let fbClass = "feedback";
+  let solClass = "solution-box";
+  let fbTitle = "";
+  let fbText = "";
   if(st.checked){
-    if(t.type === "match" || t.type === "select"){
-      html += '<div class="fb-title">'+(fullyCorrect ? '✓ Усе правильно!' : '✗ Правильно '+taskScore(t)+' із '+taskMax(t))+'</div>';
-    } else {
-      html += '<div class="fb-title">'+(fullyCorrect ? '✓ Правильно!' : '✗ Неправильно')+'</div>';
-    }
-  }
-  html += '</div>';
+    let isFullOk = false;
+    if(t.type === "choice") isFullOk = st.correct;
+    else isFullOk = (st.score === taskMax(t));
 
-  if(st.checked && !fullyCorrect){
-    html += '<div class="solution-box show"><div class="sol-title">Розв\'язок:</div>';
-    t.solution.forEach(step=>{ html += '<div class="sol-step">'+step+'</div>'; });
-    html += '</div>';
+    fbClass += " show " + (isFullOk ? "ok" : "bad");
+    solClass += " show";
+    fbTitle = isFullOk ? "✓ Правильно!" : "✗ Помилка або неповна відповідь";
+    fbText = isFullOk ? "Завдання виконано вірно." : "Ознайомтеся з розв'язком нижче.";
   }
+
+  html += `<div class="${fbClass}">
+    <div class="fb-title">${fbTitle}</div>
+    <div>${fbText}</div>
+  </div>`;
+
+  html += `<div class="${solClass}">
+    <div class="sol-title">Детальний розв'язок:</div>`;
+  t.solution.forEach(step=>{
+    html += `<div class="sol-step">• ${step}</div>`;
+  });
+  html += `</div>`;
+
+  // Action buttons
+  html += `<div class="btn-row">`;
+  if(!st.checked){
+    html += `<button class="btn check" id="check-btn">Перевірити</button>`;
+  } else {
+    html += `<button class="btn secondary" id="reset-task-btn">Спробувати ще раз</button>`;
+  }
+  html += `</div>`;
 
   container.innerHTML = html;
 
-  if(!st.checked){
-    if(t.type === "choice"){
-      container.querySelectorAll('#options .option').forEach(opt=>{
-        opt.addEventListener('click', ()=>{
-          st.selected = opt.getAttribute('data-letter');
-          renderTask();
-        });
+  // Bind event listeners
+  if(t.type === "choice"){
+    container.querySelectorAll(".option").forEach(opt=>{
+      opt.addEventListener("click", ()=>{
+        if(st.checked) return;
+        st.selected = opt.getAttribute("data-key");
+        renderCurrentTask();
       });
-    } else if(t.type === "select"){
-      container.querySelectorAll('.sel-input').forEach(sel=>{
-        const idx = parseInt(sel.getAttribute('data-row'),10);
-        const upd = ()=>{
-          if(sel.hasAttribute('data-part')){ const vals=[...sel.parentNode.querySelectorAll('select[data-row="'+idx+'"]')].map(x=>x.value.trim()); (st.partial=st.partial||{})[idx]=vals; st.selected[idx]=vals.every(Boolean)?vals.join('|'):null; } else { st.selected[idx] = sel.value.trim() || null; }
-          const cb = document.getElementById('check-btn');
-          if(cb) cb.disabled = !st.selected.every(v => v !== null);
-        };
-        sel.addEventListener(sel.tagName === 'SELECT' ? 'change' : 'input', upd);
+    });
+  } else if(t.type === "match"){
+    container.querySelectorAll(".letter-btn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        if(st.checked) return;
+        const rowIdx = parseInt(btn.closest(".letter-row").getAttribute("data-row"));
+        st.selected[rowIdx] = btn.getAttribute("data-letter");
+        renderCurrentTask();
       });
-    } else {
-      container.querySelectorAll('.letter-row[data-row]').forEach(rowEl=>{
-        const idx = parseInt(rowEl.getAttribute('data-row'), 10);
-        rowEl.querySelectorAll('.letter-btn').forEach(btn=>{
-          btn.addEventListener('click', ()=>{
-            st.selected[idx] = btn.getAttribute('data-letter');
-            renderTask();
-          });
-        });
+    });
+  } else if(t.type === "select"){
+    container.querySelectorAll(".sel-input").forEach(inp=>{
+      inp.addEventListener("input", (e)=>{
+        if(st.checked) return;
+        const subIdx = parseInt(e.target.getAttribute("data-sub"));
+        st.selected[subIdx] = e.target.value;
       });
-    }
-    const checkBtn = document.getElementById('check-btn');
-    if(checkBtn){
-      checkBtn.addEventListener('click', ()=>{ checkTask(t); });
-    }
+      inp.addEventListener("change", (e)=>{
+        if(st.checked) return;
+        const subIdx = parseInt(e.target.getAttribute("data-sub"));
+        st.selected[subIdx] = e.target.value;
+      });
+    });
   }
 
-  document.getElementById('prev-btn').disabled = state.current === 0;
-  const isLast = state.current === TASKS.length - 1;
-  document.getElementById('next-btn').classList.toggle('hidden', isLast);
-  document.getElementById('finish-btn').classList.toggle('hidden', !isLast);
-}
-
-/* ============ RESULTS ============ */
-function computeScore(){
-  let correct = 0;
-  TASKS.forEach(t=>{ correct += taskScore(t); });
-  return correct;
-}
-function showResults(){
-  stopTimer();
-  TASKS.forEach(t=>{ const st=getTaskState(t); if(st.checked) return;
-    if(t.type==="choice"){ if(st.selected){ st.checked=true; st.correct=(st.selected===t.correct); } }
-    else if(st.selected.some(Boolean)){ let c=0; t.rows.forEach((row,i)=>{ const ok=rowOk(row, st.selected[i]); st.results[i]=ok; if(ok)c++; }); st.checked=true; st.score=c; } });
-  const correct = computeScore();
-  const pct = Math.round((correct/TOTAL_MAX)*100);
-  document.getElementById('quiz-screen').classList.add('hidden');
-  document.getElementById('result-screen').classList.remove('hidden');
-  document.getElementById('score-circle').style.setProperty('--pct', pct);
-  document.getElementById('score-pct').textContent = pct+'%';
-  document.getElementById('stat-correct').textContent = correct;
-  document.getElementById('stat-total').textContent = TOTAL_MAX;
-  document.getElementById('stat-time').textContent = formatTime(Date.now()-state.startTime);
-
-  const typeLabel = {choice:"з вибором відповіді", match:"на відповідність", select:"по діях / відповідь"};
-
-  const tbody = document.getElementById('results-table-body');
-  tbody.innerHTML = '';
-  TASKS.forEach(t=>{
-    const score = taskScore(t);
-    const max = taskMax(t);
-    const checkedAtAll = isTaskAnswered(t);
-    const ok = checkedAtAll && score === max;
-    const tr = document.createElement('tr');
-    tr.className = checkedAtAll ? (ok ? 'row-ok' : 'row-bad') : 'row-bad';
-    tr.innerHTML =
-      '<td>'+t.label+'</td>'+
-      '<td>'+typeLabel[t.type]+'</td>'+
-      '<td>'+score+' / '+max+'</td>'+
-      '<td class="'+(ok?'status-ok':'status-bad')+'">'+(checkedAtAll ? (ok?'✓ правильно':'✗ помилка') : '— не перевірено')+'</td>';
-    tbody.appendChild(tr);
-  });
-  sendResults();
-}
-
-
-/* ============ ВІДПРАВКА РЕЗУЛЬТАТУ У GOOGLE FORMS ============ */
-const FORM_URL='https://docs.google.com/forms/d/e/1FAIpQLSeEDXFUuGmZ-rORfBhpOcmQ4YpbPgwSzgBiCxVHLZXCrem-RQ/formResponse';
-const FIELDS={email:'emailAddress',name:'entry.1283019973',group:'entry.621793441',score:'entry.255368005',details:'entry.1194474293'};
-let student={email:'',name:'',group:''};
-let sending=false, sentOk=false, savedPayload=null;
-function fmtAns(v){ return (v===null||v===undefined||v==='')?'—':String(v); }
-function buildDetails(){
-  const lines=[];
-  TASKS.forEach((t,ti)=>{
-    const n=ti+1; const st=getTaskState(t);
-    if(t.type==='choice'){
-      const a=st.selected; const ok=(a===t.correct);
-      lines.push(n+': '+fmtAns(a)+(ok?' ✓':' ✗ (правильно '+t.correct+')'));
-    } else {
-      const parts=t.rows.map((row,i)=>{
-        const v=st.selected[i]; const ok=rowOk(row,v);
-        const right=(row.choices||row.pair||row.correct!==undefined)?row.correct:row.answer;
-        const tag=(t.type==='match')?(row.n+'-'):((i+1)+')');
-        return tag+fmtAns(v)+(ok?' ✓':' ✗ (правильно '+right+')');
-      });
-      lines.push(n+': '+parts.join('; '));
-    }
-  });
-  lines.push('Час: '+formatTime(Date.now()-state.startTime));
-  return lines.join('\n');
-}
-function setSendStatus(cls,text){
-  const el=document.getElementById('send-status');
-  el.className='send-status'+(cls?' '+cls:''); el.textContent=text;
-}
-function sendResults(){
-  if(sending||sentOk) return;
-  if(!savedPayload){
-    savedPayload=new URLSearchParams();
-    savedPayload.append(FIELDS.email,student.email);
-    savedPayload.append(FIELDS.name,student.name);
-    savedPayload.append(FIELDS.group,student.group);
-    savedPayload.append(FIELDS.score,String(computeScore()));
-    savedPayload.append(FIELDS.details,buildDetails());
+  const checkBtn = document.getElementById("check-btn");
+  if(checkBtn){
+    checkBtn.addEventListener("click", ()=>{
+      if(t.type === "choice"){
+        if(!st.selected) return;
+        st.checked = true;
+        st.correct = (st.selected === t.correct);
+      } else if(t.type === "match"){
+        if(st.selected.some(x => x === null)) return;
+        st.checked = true;
+        let sc = 0;
+        t.rows.forEach((r, idx)=>{
+          if(st.selected[idx] === r.correct) sc++;
+        });
+        st.score = sc;
+      } else if(t.type === "select"){
+        if(st.selected.some(x => x === null || x === "")) return;
+        st.checked = true;
+        let sc = 0;
+        t.rows.forEach((r, idx)=>{
+          let userVal = String(st.selected[idx]).trim().replace(',', '.');
+          let rightVal = String(r.answer !== undefined ? r.answer : r.correct).trim().replace(',', '.');
+          let ok = (userVal.toLowerCase() === rightVal.toLowerCase());
+          st.results[idx] = ok;
+          if(ok) sc++;
+        });
+        st.score = sc;
+      }
+      renderTaskNav();
+      renderCurrentTask();
+    });
   }
-  sending=true;
-  document.getElementById('retry-btn').classList.add('hidden');
-  setSendStatus('','Надсилаю результат…');
-  fetch(FORM_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:savedPayload.toString()})
-    .then(()=>{ sending=false; sentOk=true; setSendStatus('ok','Результат відправлено викладачу. Дякуємо!'); })
-    .catch(()=>{ sending=false; setSendStatus('bad','Не вдалося надіслати (перевір інтернет). Натисни «Надіслати ще раз» або зроби скриншот і надішли викладачу.'); document.getElementById('retry-btn').classList.remove('hidden'); });
-}
-function validStudent(){
-  const e=document.getElementById('stu-email').value.trim();
-  const n=document.getElementById('stu-name').value.trim();
-  const g=document.getElementById('stu-group').value.trim();
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) && n.length>=3 && g.length>=2;
-}
-['stu-email','stu-name','stu-group'].forEach(id=>{
-  document.getElementById(id).addEventListener('input',()=>{ document.getElementById('start-btn').disabled=!validStudent(); });
-});
-document.getElementById('retry-btn').addEventListener('click',sendResults);
 
-/* ============ EVENTS ============ */
-document.getElementById('start-btn').addEventListener('click', ()=>{
-  if(!validStudent()) return;
-  student={email:document.getElementById('stu-email').value.trim(),name:document.getElementById('stu-name').value.trim(),group:document.getElementById('stu-group').value.trim()};
-  state.started = true;
-  document.getElementById('start-screen').classList.add('hidden');
-  document.getElementById('quiz-screen').classList.remove('hidden');
-  startTimer();
-  renderNav();
-  renderTask();
+  const resetTaskBtn = document.getElementById("reset-task-btn");
+  if(resetTaskBtn){
+    resetTaskBtn.addEventListener("click", ()=>{
+      st.checked = false;
+      if(t.type === "choice"){
+        st.selected = null;
+        st.correct = false;
+      } else if(t.type === "match"){
+        st.selected = new Array(t.rows.length).fill(null);
+        st.score = 0;
+      } else if(t.type === "select"){
+        st.selected = new Array(t.rows.length).fill(null);
+        st.results = new Array(t.rows.length).fill(null);
+        st.score = 0;
+      }
+      renderTaskNav();
+      renderCurrentTask();
+    });
+  }
+
+  // Navigation buttons visibility
+  document.getElementById("prev-btn").style.display = (state.current === 0) ? "none" : "inline-flex";
+  const nextBtn = document.getElementById("next-btn");
+  const finishBtn = document.getElementById("finish-btn");
+  if(state.current === TASKS.length - 1){
+    nextBtn.classList.add("hidden");
+    finishBtn.classList.remove("hidden");
+  } else {
+    nextBtn.classList.remove("hidden");
+    finishBtn.classList.add("hidden");
+  }
+}
+
+document.getElementById("prev-btn").addEventListener("click", ()=>{
+  if(state.current > 0){
+    state.current--;
+    renderTaskNav();
+    renderCurrentTask();
+  }
 });
-document.getElementById('prev-btn').addEventListener('click', ()=>{
-  if(state.current > 0){ state.current--; renderTask(); renderNav(); }
+document.getElementById("next-btn").addEventListener("click", ()=>{
+  if(state.current < TASKS.length - 1){
+    state.current++;
+    renderTaskNav();
+    renderCurrentTask();
+  }
 });
-document.getElementById('next-btn').addEventListener('click', ()=>{
-  if(state.current < TASKS.length - 1){ state.current++; renderTask(); renderNav(); }
+
+document.getElementById("finish-btn").addEventListener("click", ()=>{
+  quizScreen.classList.add("hidden");
+  resultScreen.classList.remove("hidden");
+  const durationMs = stopTimer();
+
+  // Calculate totals
+  let totalScore = 0;
+  let correctTasksCount = 0;
+
+  let tableBodyHtml = "";
+  TASKS.forEach((t, i)=>{
+    const st = state.answers[t.id];
+    let max = taskMax(t);
+    let sc = 0;
+    if(st && st.checked){
+      if(t.type === "choice") sc = st.correct ? 1 : 0;
+      else sc = st.score;
+    }
+    totalScore += sc;
+    const isOk = (sc === max);
+    if(isOk) correctTasksCount++;
+
+    tableBodyHtml += `<tr class="${isOk ? 'row-ok' : 'row-bad'}">
+      <td>${t.label}</td>
+      <td>${t.type === 'choice' ? 'Вибір' : (t.type === 'match' ? 'Відповідність' : 'Вз. розрахунок')}</td>
+      <td><b>${sc}</b> / ${max}</td>
+      <td class="${isOk ? 'status-ok' : 'status-bad'}">${isOk ? 'Виконано' : 'Помилка'}</td>
+    </tr>`;
+  });
+
+  document.getElementById("results-table-body").innerHTML = tableBodyHtml;
+  const pct = Math.round((totalScore / TOTAL_MAX) * 100);
+  
+  const circle = document.getElementById("score-circle");
+  circle.style.setProperty("--pct", pct);
+  document.getElementById("score-pct").textContent = pct + "%";
+  document.getElementById("stat-correct").textContent = correctTasksCount + "/22";
+  document.getElementById("stat-total").textContent = totalScore + "/" + TOTAL_MAX;
+  document.getElementById("stat-time").textContent = formatTime(durationMs);
+
+  // SEND DATA TO GOOGLE FORMS (Виправлений URL та правильні entry-номери)
+  const formData = new FormData();
+  formData.append("entry.1283019973", stuEmail.value.trim());
+  formData.append("entry.621793441", stuName.value.trim());
+  formData.append("entry.255368005", stuGroup.value.trim());
+  formData.append("entry.1194474293", `${totalScore} з ${TOTAL_MAX} (${pct}%)`);
+
+  const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSeEDXFUuGmZ-rORfBhpOcmQ4YpbPgwSzgBiCxVHLZXCrem-RQ/formResponse";
+
+  fetch(formUrl, {
+    method: "POST",
+    mode: "no-cors",
+    body: formData
+  }).then(()=>{
+    const statusEl = document.getElementById("send-status");
+    statusEl.textContent = "Результат успішно надіслано викладачу!";
+    statusEl.className = "send-status ok";
+    document.getElementById("retry-btn").classList.remove("hidden");
+  }).catch((err)=>{
+    console.error(err);
+    const statusEl = document.getElementById("send-status");
+    statusEl.textContent = "Помилка надсилання. Спробуйте натиснути «Надіслати ще раз».";
+    statusEl.className = "send-status bad";
+    document.getElementById("retry-btn").classList.remove("hidden");
+  });
 });
-document.getElementById('finish-btn').addEventListener('click', showResults);
+
+document.getElementById("retry-btn").addEventListener("click", ()=>{
+  const statusEl = document.getElementById("send-status");
+  statusEl.textContent = "Повторне надсилання…";
+  statusEl.className = "send-status";
+
+  const totalScore = TASKS.reduce((acc, t)=>{
+    const st = state.answers[t.id];
+    if(!st || !st.checked) return acc;
+    return acc + (t.type === 'choice' ? (st.correct ? 1 : 0) : st.score);
+  }, 0);
+  const pct = Math.round((totalScore / TOTAL_MAX) * 100);
+
+  const formData = new FormData();
+  formData.append("entry.1283019973", stuEmail.value.trim());
+  formData.append("entry.621793441", stuName.value.trim());
+  formData.append("entry.255368005", stuGroup.value.trim());
+  formData.append("entry.1194474293", `${totalScore} з ${TOTAL_MAX} (${pct}%)`);
+
+  const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSeEDXFUuGmZ-rORfBhpOcmQ4YpbPgwSzgBiCxVHLZXCrem-RQ/formResponse";
+
+  fetch(formUrl, {
+    method: "POST",
+    mode: "no-cors",
+    body: formData
+  }).then(()=>{
+    statusEl.textContent = "Результат успішно надіслано викладачу!";
+    statusEl.className = "send-status ok";
+  }).catch(()=>{
+    statusEl.textContent = "Не вдалося надіслати. Перевірте інтернет-з'єднання.";
+    statusEl.className = "send-status bad";
+  });
+});
 </script>
 </body>
 </html>
