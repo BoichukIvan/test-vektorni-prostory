@@ -144,9 +144,25 @@
   .match-row{margin-bottom:14px;}
   .sel-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px;margin-bottom:8px;border:1.5px solid var(--line,#d9deea);border-radius:10px;background:#fff;}
   .sel-q{flex:1 1 280px;font-size:15px;}
-  .sel-num{min-width:110px;max-width:140px;}
+  .sel-num{
+    flex:0 1 140px;
+    width:140px;
+    min-width:0;
+    max-width:100%;
+  }
+  .sel-input{
+    display:block;
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    box-sizing:border-box;
+    font-size:15px;
+    padding:7px 10px;
+    border-radius:8px;
+    border:1.5px solid #b9c2dc;
+    background:#fff;
+  }
   .sel-lab{font-weight:700;margin-left:6px;}
-  .sel-input{font-size:15px;padding:7px 10px;border-radius:8px;border:1.5px solid #b9c2dc;background:#fff;min-width:130px;}
   .sel-row.sel-ok{border-color:#2e9e5b;background:#eaf8ef;}
   .sel-row.sel-bad{border-color:#d64545;background:#fdeeee;}
   .sel-right{font-weight:700;color:#d64545;font-size:14px;}
@@ -990,15 +1006,21 @@ function renderCurrentTask(){
   let solClass = "solution-box";
   let fbTitle = "";
   let fbText = "";
-  if(st.checked){
+    if(st.checked){
     let isFullOk = false;
     if(t.type === "choice") isFullOk = st.correct;
     else isFullOk = (st.score === taskMax(t));
 
     fbClass += " show " + (isFullOk ? "ok" : "bad");
     solClass += " show";
-    fbTitle = isFullOk ? "✓ Правильно!" : "✗ Помилка або неповна відповідь";
-    fbText = isFullOk ? "Завдання виконано вірно." : "Ознайомтеся з розв'язком нижче.";
+      
+    fbTitle = isFullOk
+      ? "✓ Правильно!"
+      : "✗ Помилка або неповна відповідь";
+
+    fbText = isFullOk
+      ? "Завдання виконано вірно."
+      : "Відповідь зафіксовано. Перейдіть до наступного завдання.";
   }
 
   html += `<div class="${fbClass}">
@@ -1017,8 +1039,6 @@ function renderCurrentTask(){
   html += `<div class="btn-row">`;
   if(!st.checked){
     html += `<button class="btn check" id="check-btn">Перевірити</button>`;
-  } else {
-    html += `<button class="btn secondary" id="reset-task-btn">Спробувати ще раз</button>`;
   }
   html += `</div>`;
 
