@@ -1137,7 +1137,80 @@ document.getElementById("next-btn").addEventListener("click", ()=>{
     renderCurrentTask();
   }
 });
+/* ============ GOOGLE APPS SCRIPT: ВІДПРАВЛЕННЯ РЕЗУЛЬТАТІВ ============ */
 
+// Замініть адресу нижче на URL вашого розгорнутого вебзастосунку Apps Script
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwHuZ_p_Rxj6IdBsvgzEjzBLTf2A0tD0H8xhTlVJ97_srZ5gI3vuQtwm55ni9SL13ae/exec";
+
+let lastSubmissionPayload = null;
+let submissionPending = false;
+
+// Прихований iframe прийматиме відповідь від Google Apps Script
+const responseFrame = document.createElement("iframe");
+responseFrame.name = "apps-script-submit-frame";
+responseFrame.id = "apps-script-submit-frame";
+responseFrame.style.display = "none";
+document.body.appendChild(responseFrame);
+
+function sendResult() {
+  if (!lastSubmissionPayload || submissionPending) return;
+
+  submissionPending = true;
+
+  const statusEl = document.getElementById("send-status");
+  const retryBtn = document.getElementById("retry-btn");
+
+  statusEl.textContent = "Надсилаю результат...";
+  statusEl.className = "send-status";
+  retryBtn.classList.add("hidden");
+
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = APPS_SCRIPT_URL;
+  form.target = "apps-script-submit-frame";
+  form.style.display = "none";
+
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "payload";
+  input.value = JSON.stringify(lastSubmissionPayload);
+
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
+}
+
+// Отримуємо підтвердження від Apps Script
+window.addEventListener("message", (event) => {
+  if (event.source !== responseFrame.contentWindow) return;
+
+  const data = event.data;
+
+  if (!data || data.type !== "TEST_SAVED") return;
+  if (!lastSubmissionPayload) return;
+  if (data.requestId !== lastSubmissionPayload.requestId) return;
+
+  submissionPending = false;
+
+  const statusEl = document.getElementById("send-status");
+  const retryBtn = document.getElementById("retry-btn");
+
+  if (data.success) {
+    statusEl.textContent = "Результат успішно збережено в Google Таблиці!";
+    statusEl.className = "send-status ok";
+    retryBtn.classList.add("hidden");
+  } else {
+    statusEl.textContent = "Помилка збереження: " + data.error;
+    statusEl.className = "send-status bad";
+    retryBtn.classList.remove("hidden");
+  }
+});
+
+// Повторне надсилання
+document.getElementById("retry-btn").addEventListener("click", () => {
+  sendResult();
+});
 document.getElementById("finish-btn").addEventListener("click", ()=>{
   quizScreen.classList.add("hidden");
   resultScreen.classList.remove("hidden");
@@ -1178,64 +1251,22 @@ document.getElementById("finish-btn").addEventListener("click", ()=>{
   document.getElementById("stat-total").textContent = totalScore + "/" + TOTAL_MAX;
   document.getElementById("stat-time").textContent = formatTime(durationMs);
 
-  // SEND DATA TO GOOGLE FORMS (Виправлений URL та правильні entry-номери)
-  const formData = new FormData();
-  formData.append("entry.1283019973", stuEmail.value.trim());
-  formData.append("entry.621793441", stuName.value.trim());
-  formData.append("entry.255368005", stuGroup.value.trim());
-  formData.append("entry.1194474293", `${totalScore} з ${TOTAL_MAX} (${pct}%)`);
+    // Формуємо пакет даних для Google Таблиці
+  lastSubmissionPayload = {
+    requestId: Date.now().toString() + "-" +
+      Math.random().toString(36).slice(2),
+    email: stuEmail.value.trim(),
+    name: stuName.value.trim(),
+    group: stuGroup.value.trim(),
+    score: totalScore,
+    maxScore: TOTAL_MAX,
+    percentage: pct,
+    durationSeconds: Math.round(durationMs / 1000),
+    answers: state.answers,
+    submittedAt: new Date().toISOString()
+  };
 
-  const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSeEDXFUuGmZ-rORfBhpOcmQ4YpbPgwSzgBiCxVHLZXCrem-RQ/formResponse";
-
-  fetch(formUrl, {
-    method: "POST",
-    mode: "no-cors",
-    body: formData
-  }).then(()=>{
-    const statusEl = document.getElementById("send-status");
-    statusEl.textContent = "Результат успішно надіслано викладачу!";
-    statusEl.className = "send-status ok";
-    document.getElementById("retry-btn").classList.remove("hidden");
-  }).catch((err)=>{
-    console.error(err);
-    const statusEl = document.getElementById("send-status");
-    statusEl.textContent = "Помилка надсилання. Спробуйте натиснути «Надіслати ще раз».";
-    statusEl.className = "send-status bad";
-    document.getElementById("retry-btn").classList.remove("hidden");
-  });
-});
-
-document.getElementById("retry-btn").addEventListener("click", ()=>{
-  const statusEl = document.getElementById("send-status");
-  statusEl.textContent = "Повторне надсилання…";
-  statusEl.className = "send-status";
-
-  const totalScore = TASKS.reduce((acc, t)=>{
-    const st = state.answers[t.id];
-    if(!st || !st.checked) return acc;
-    return acc + (t.type === 'choice' ? (st.correct ? 1 : 0) : st.score);
-  }, 0);
-  const pct = Math.round((totalScore / TOTAL_MAX) * 100);
-
-  const formData = new FormData();
-  formData.append("entry.1283019973", stuEmail.value.trim());
-  formData.append("entry.621793441", stuName.value.trim());
-  formData.append("entry.255368005", stuGroup.value.trim());
-  formData.append("entry.1194474293", `${totalScore} з ${TOTAL_MAX} (${pct}%)`);
-
-  const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSeEDXFUuGmZ-rORfBhpOcmQ4YpbPgwSzgBiCxVHLZXCrem-RQ/formResponse";
-
-  fetch(formUrl, {
-    method: "POST",
-    mode: "no-cors",
-    body: formData
-  }).then(()=>{
-    statusEl.textContent = "Результат успішно надіслано викладачу!";
-    statusEl.className = "send-status ok";
-  }).catch(()=>{
-    statusEl.textContent = "Не вдалося надіслати. Перевірте інтернет-з'єднання.";
-    statusEl.className = "send-status bad";
-  });
+  sendResult();
 });
 </script>
 </body>
